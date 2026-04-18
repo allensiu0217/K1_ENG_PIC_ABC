@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>K1 Alphabet Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
+        
+        body {
+            font-family: 'Comic Neue', cursive, sans-serif;
+            background-color: #f0fdf4;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden; /* 防止橡皮筋效果 */
+        }
+
+        .bounce {
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-20px);}
+            60% {transform: translateY(-10px);}
+        }
+
+        .shake {
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% {transform: translateX(0);}
+            10%, 30%, 50%, 70%, 90% {transform: translateX(-10px);}
+            20%, 40%, 60%, 80% {transform: translateX(10px);}
+        }
+
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        
+        .card:active {
+            transform: scale(0.95);
+        }
+
+        /* 隱藏滾動條 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        .feedback-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .feedback-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .feedback-text {
+            font-size: 4rem;
+            color: #ec4899;
+            text-shadow: 3px 3px 0px #fbcfe8;
+            transform: scale(0.5);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .feedback-overlay.show .feedback-text {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center relative">
+
+    <!-- Screen: Main Menu -->
+    <div id="menu-screen" class="w-full h-full flex flex-col items-center justify-center p-4">
+        <h1 class="text-4xl md:text-6xl text-center text-green-600 mb-8 font-bold drop-shadow-md">
+            Alphabet Adventure!
+        </h1>
+        <p class="text-xl text-gray-600 mb-6 font-bold">Choose a group to start:</p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-lg">
+            <button onclick="startGame('A-E')" class="group-btn bg-red-400 hover:bg-red-500 text-white text-3xl py-4 rounded-3xl shadow-[0_6px_0_#b91c1c] active:shadow-[0_0px_0_#b91c1c] active:translate-y-[6px] transition-all">A - E</button>
+            <button onclick="startGame('F-J')" class="group-btn bg-orange-400 hover:bg-orange-500 text-white text-3xl py-4 rounded-3xl shadow-[0_6px_0_#c2410c] active:shadow-[0_0px_0_#c2410c] active:translate-y-[6px] transition-all">F - J</button>
+            <button onclick="startGame('K-O')" class="group-btn bg-yellow-400 hover:bg-yellow-500 text-white text-3xl py-4 rounded-3xl shadow-[0_6px_0_#a16207] active:shadow-[0_0px_0_#a16207] active:translate-y-[6px] transition-all">K - O</button>
+            <button onclick="startGame('P-T')" class="group-btn bg-green-400 hover:bg-green-500 text-white text-3xl py-4 rounded-3xl shadow-[0_6px_0_#15803d] active:shadow-[0_0px_0_#15803d] active:translate-y-[6px] transition-all">P - T</button>
+            <button onclick="startGame('U-Z')" class="group-btn bg-blue-400 hover:bg-blue-500 text-white text-3xl py-4 rounded-3xl shadow-[0_6px_0_#1d4ed8] active:shadow-[0_0px_0_#1d4ed8] active:translate-y-[6px] transition-all">U - Z</button>
+            <button onclick="startGame('MIXED')" class="group-btn bg-purple-400 hover:bg-purple-500 text-white text-3xl py-4 rounded-3xl shadow-[0_6px_0_#6b21a8] active:shadow-[0_0px_0_#6b21a8] active:translate-y-[6px] transition-all">MIXED</button>
+        </div>
+    </div>
+
+    <!-- Screen: Game -->
+    <div id="game-screen" class="w-full h-full flex-col hidden p-4 max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center w-full bg-white p-4 rounded-2xl shadow-sm mb-4">
+            <button onclick="backToMenu()" class="text-gray-500 hover:text-gray-700 text-2xl w-12 h-12 flex items-center justify-center rounded-full bg-gray-100">
+                <i class="fas fa-home"></i>
+            </button>
+            <div class="flex flex-col items-center">
+                <span id="level-display" class="text-2xl font-bold text-blue-600">Level 1</span>
+                <div id="progress-stars" class="flex text-yellow-400 text-xl mt-1">
+                    <!-- Stars will be injected here -->
+                </div>
+            </div>
+            <div class="w-12 h-12"></div> <!-- Spacer -->
+        </div>
+
+        <!-- Target Letter Area -->
+        <div class="flex-1 flex flex-col items-center justify-center mb-4 min-h-[150px]">
+            <div class="flex items-center gap-4 bg-white px-10 py-6 rounded-3xl shadow-md border-4 border-blue-100">
+                <h2 id="target-letter" class="text-8xl md:text-9xl font-bold text-gray-800">A</h2>
+                <button onclick="playTargetLetterSound()" class="w-16 h-16 rounded-full bg-blue-100 text-blue-500 text-3xl flex items-center justify-center hover:bg-blue-200 active:scale-95 transition-transform">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Options Area -->
+        <div id="options-container" class="flex-2 flex justify-center items-center gap-4 md:gap-8 pb-4">
+            <!-- Cards will be injected here -->
+        </div>
+    </div>
+
+    <!-- Screen: Level Complete -->
+    <div id="level-complete-screen" class="w-full h-full flex flex-col items-center justify-center hidden p-4 absolute top-0 bg-white z-40">
+        <div class="text-8xl mb-4 bounce">🌟</div>
+        <h2 class="text-5xl text-blue-600 font-bold mb-8 text-center">Level Cleared!</h2>
+        <button onclick="nextLevel()" class="bg-green-500 text-white text-3xl px-10 py-4 rounded-full shadow-[0_6px_0_#15803d] active:shadow-[0_0px_0_#15803d] active:translate-y-[6px] transition-all">Next Level <i class="fas fa-arrow-right ml-2"></i></button>
+    </div>
+
+    <!-- Screen: Game Complete -->
+    <div id="game-complete-screen" class="w-full h-full flex flex-col items-center justify-center hidden p-4 absolute top-0 bg-yellow-50 z-40">
+        <div class="text-9xl mb-4 bounce">🏆</div>
+        <h2 class="text-5xl md:text-7xl text-yellow-600 font-bold mb-4 text-center">YOU DID IT!</h2>
+        <p class="text-2xl text-gray-600 mb-8 font-bold">Awesome job!</p>
+        <button onclick="backToMenu()" class="bg-blue-500 text-white text-3xl px-10 py-4 rounded-full shadow-[0_6px_0_#1d4ed8] active:shadow-[0_0px_0_#1d4ed8] active:translate-y-[6px] transition-all"><i class="fas fa-home mr-2"></i> Play Again</button>
+    </div>
+
+    <!-- Feedback Overlay -->
+    <div id="feedback-overlay" class="feedback-overlay">
+        <div id="feedback-text" class="feedback-text font-bold">GREAT!</div>
+    </div>
+
+    <script>
+        // --- DATA DICTIONARY (8 items per letter) ---
+        const dictionary = {
+            A: [ {w:"Apple", e:"🍎"}, {w:"Ant", e:"🐜"}, {w:"Alligator", e:"🐊"}, {w:"Airplane", e:"✈️"}, {w:"Acorn", e:"🌰"}, {w:"Angel", e:"👼"}, {w:"Anchor", e:"⚓"}, {w:"Arrow", e:"🏹"} ],
+            B: [ {w:"Bear", e:"🐻"}, {w:"Ball", e:"⚽"}, {w:"Banana", e:"🍌"}, {w:"Bird", e:"🐦"}, {w:"Bus", e:"🚌"}, {w:"Boat", e:"⛵"}, {w:"Butterfly", e:"🦋"}, {w:"Book", e:"📖"} ],
+            C: [ {w:"Cat", e:"🐱"}, {w:"Car", e:"🚗"}, {w:"Cake", e:"🍰"}, {w:"Cow", e:"🐄"}, {w:"Camel", e:"🐫"}, {w:"Carrot", e:"🥕"}, {w:"Cloud", e:"☁️"}, {w:"Cup", e:"☕"} ],
+            D: [ {w:"Dog", e:"🐶"}, {w:"Duck", e:"🦆"}, {w:"Dinosaur", e:"🦕"}, {w:"Door", e:"🚪"}, {w:"Drum", e:"🥁"}, {w:"Dolphin", e:"🐬"}, {w:"Dress", e:"👗"}, {w:"Diamond", e:"💎"} ],
+            E: [ {w:"Elephant", e:"🐘"}, {w:"Egg", e:"🥚"}, {w:"Eye", e:"👁️"}, {w:"Ear", e:"👂"}, {w:"Earth", e:"🌍"}, {w:"Eagle", e:"🦅"}, {w:"Eight", e:"8️⃣"}, {w:"Envelope", e:"✉️"} ],
+            F: [ {w:"Fish", e:"🐟"}, {w:"Frog", e:"🐸"}, {w:"Flower", e:"🌸"}, {w:"Fire", e:"🔥"}, {w:"Fox", e:"🦊"}, {w:"Flag", e:"🚩"}, {w:"Foot", e:"🦶"}, {w:"Feather", e:"🪶"} ],
+            G: [ {w:"Goat", e:"🐐"}, {w:"Giraffe", e:"🦒"}, {w:"Grape", e:"🍇"}, {w:"Guitar", e:"🎸"}, {w:"Ghost", e:"👻"}, {w:"Gift", e:"🎁"}, {w:"Girl", e:"👧"}, {w:"Gorilla", e:"🦍"} ],
+            H: [ {w:"Hat", e:"🎩"}, {w:"Horse", e:"🐴"}, {w:"House", e:"🏠"}, {w:"Heart", e:"❤️"}, {w:"Hand", e:"🤚"}, {w:"Helicopter", e:"🚁"}, {w:"Hippo", e:"🦛"}, {w:"Hammer", e:"🔨"} ],
+            I: [ {w:"Icecream", e:"🍦"}, {w:"Igloo", e:"🛖"}, {w:"Island", e:"🏝️"}, {w:"Iguana", e:"🦎"}, {w:"Insect", e:"🐛"}, {w:"Ice", e:"🧊"}, {w:"Iron", e:"🧲"}, {w:"Ink", e:"🖋️"} ],
+            J: [ {w:"Juice", e:"🧃"}, {w:"Jellyfish", e:"🪼"}, {w:"Jacket", e:"🧥"}, {w:"Jam", e:"🍯"}, {w:"Jet", e:"🛩️"}, {w:"Jaguar", e:"🐆"}, {w:"Jeans", e:"👖"}, {w:"Jump", e:"🏃"} ],
+            K: [ {w:"Kangaroo", e:"🦘"}, {w:"Key", e:"🔑"}, {w:"Kite", e:"🪁"}, {w:"King", e:"👑"}, {w:"Keyboard", e:"⌨️"}, {w:"Kiwi", e:"🥝"}, {w:"Kitten", e:"🐈"}, {w:"Koala", e:"🐨"} ],
+            L: [ {w:"Lion", e:"🦁"}, {w:"Lemon", e:"🍋"}, {w:"Leaf", e:"🍃"}, {w:"Lamp", e:"💡"}, {w:"Ladybug", e:"🐞"}, {w:"Lock", e:"🔒"}, {w:"Lips", e:"👄"}, {w:"Lizard", e:"🦎"} ],
+            M: [ {w:"Monkey", e:"🐒"}, {w:"Mouse", e:"🐭"}, {w:"Moon", e:"🌙"}, {w:"Milk", e:"🥛"}, {w:"Mountain", e:"⛰️"}, {w:"Mushroom", e:"🍄"}, {w:"Melon", e:"🍈"}, {w:"Magnet", e:"🧲"} ],
+            N: [ {w:"Nest", e:"🪹"}, {w:"Nut", e:"🥜"}, {w:"Net", e:"🥅"}, {w:"Nose", e:"👃"}, {w:"Nine", e:"9️⃣"}, {w:"Nail", e:"💅"}, {w:"Ninja", e:"🥷"}, {w:"Nurse", e:"👩‍⚕️"} ],
+            O: [ {w:"Octopus", e:"🐙"}, {w:"Orange", e:"🍊"}, {w:"Owl", e:"🦉"}, {w:"Ostrich", e:"🴕"}, {w:"Onion", e:"🧅"}, {w:"Ocean", e:"🌊"}, {w:"Olive", e:"🫒"}, {w:"Otter", e:"🦦"} ],
+            P: [ {w:"Pig", e:"🐷"}, {w:"Penguin", e:"🐧"}, {w:"Pizza", e:"🍕"}, {w:"Panda", e:"🐼"}, {w:"Pencil", e:"✏️"}, {w:"Pumpkin", e:"🎃"}, {w:"Parrot", e:"🦜"}, {w:"Pear", e:"🍐"} ],
+            Q: [ {w:"Queen", e:"👑"}, {w:"Quilt", e:"🛏️"}, {w:"Question", e:"❓"}, {w:"Quarter", e:"🪙"}, {w:"Quail", e:"🐦"}, {w:"Quiet", e:"🤫"}, {w:"Queue", e:"🧍"}, {w:"Quartz", e:"💎"} ],
+            R: [ {w:"Rabbit", e:"🐰"}, {w:"Rainbow", e:"🌈"}, {w:"Robot", e:"🤖"}, {w:"Ring", e:"💍"}, {w:"Rocket", e:"🚀"}, {w:"Rose", e:"🌹"}, {w:"Rain", e:"🌧️"}, {w:"Rat", e:"🐀"} ],
+            S: [ {w:"Sun", e:"☀️"}, {w:"Star", e:"⭐"}, {w:"Snake", e:"🐍"}, {w:"Spider", e:"🕷️"}, {w:"Shoe", e:"👟"}, {w:"Sock", e:"🧦"}, {w:"Snowman", e:"⛄"}, {w:"Spoon", e:"🥄"} ],
+            T: [ {w:"Tiger", e:"🐯"}, {w:"Tree", e:"🌳"}, {w:"Train", e:"🚂"}, {w:"Turtle", e:"🐢"}, {w:"Tomato", e:"🍅"}, {w:"Tent", e:"⛺"}, {w:"Tooth", e:"🦷"}, {w:"Table", e:"🪑"} ],
+            U: [ {w:"Umbrella", e:"☂️"}, {w:"Unicorn", e:"🦄"}, {w:"Uniform", e:"🥋"}, {w:"Up", e:"⬆️"}, {w:"UFO", e:"🛸"}, {w:"Udon", e:"🍜"}, {w:"Unicycle", e:"🚲"}, {w:"Urn", e:"🏺"} ],
+            V: [ {w:"Van", e:"🚐"}, {w:"Violin", e:"🎻"}, {w:"Volcano", e:"🌋"}, {w:"Vase", e:"🏺"}, {w:"Vest", e:"🦺"}, {w:"Vegetable", e:"🥦"}, {w:"Vacuum", e:"🧹"}, {w:"Vampire", e:"🧛"} ],
+            W: [ {w:"Watermelon", e:"🍉"}, {w:"Whale", e:"🐳"}, {w:"Wolf", e:"🐺"}, {w:"Window", e:"🪟"}, {w:"Wheel", e:"🛞"}, {w:"Watch", e:"⌚"}, {w:"Worm", e:"🪱"}, {w:"Web", e:"🕸️"} ],
+            X: [ {w:"X-ray", e:"🩻"}, {w:"Xylophone", e:"🎹"}, {w:"Box", e:"📦"}, {w:"Fox", e:"🦊"}, {w:"Six", e:"6️⃣"}, {w:"Mix", e:"🥣"}, {w:"Axe", e:"🪓"}, {w:"Wax", e:"🕯️"} ],
+            Y: [ {w:"Yacht", e:"🛥️"}, {w:"Yo-yo", e:"🪀"}, {w:"Yarn", e:"🧶"}, {w:"Yogurt", e:"🍦"}, {w:"Yellow", e:"🟡"}, {w:"Yolk", e:"🍳"}, {w:"Yak", e:"🐃"}, {w:"Yam", e:"🍠"} ],
+            Z: [ {w:"Zebra", e:"🦓"}, {w:"Zoo", e:"🦁"}, {w:"Zero", e:"0️⃣"}, {w:"Zipper", e:"🤐"}, {w:"Zigzag", e:"〰️"}, {w:"Zombie", e:"🧟"}, {w:"Zucchini", e:"🥒"}, {w:"Zeppelin", e:"🛩️"} ]
+        };
+
+        const groupsDef = {
+            'A-E': ['A','B','C','D','E'],
+            'F-J': ['F','G','H','I','J'],
+            'K-O': ['K','L','M','N','O'],
+            'P-T': ['P','Q','R','S','T'],
+            'U-Z': ['U','V','W','X','Y','Z'],
+            'MIXED': Object.keys(dictionary)
+        };
+
+        const encouragements = ["Great!", "You are right!", "Good job!", "Awesome!", "Excellent!"];
+
+        // --- STATE VARIABLES ---
+        let currentGroupLetters = [];
+        let currentLevel = 1;
+        let questionCount = 0;
+        const maxQuestionsPerLevel = 5;
+        let currentTargetLetter = '';
+        let isUpperCase = true;
+        let correctOption = null;
+        let currentOptions = [];
+        let isProcessing = false;
+
+        // --- UTILS ---
+        const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        const shuffleArray = (arr) => arr.sort(() => Math.random() - 0.5);
+
+        // --- TTS (Text to Speech) ---
+        let synth = window.speechSynthesis;
+        let englishVoice = null;
+
+        function initVoices() {
+            let voices = synth.getVoices();
+            // Try to find a good English voice, prefer US
+            englishVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) || 
+                           voices.find(v => v.lang.startsWith('en-')) || 
+                           voices[0]; // fallback
+        }
+        
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = initVoices;
+        }
+
+        function speak(text, rate = 0.6) {
+            if (synth.speaking) synth.cancel(); // Stop current speech
+            let utterance = new SpeechSynthesisUtterance(text);
+            if (!englishVoice) initVoices();
+            if (englishVoice) utterance.voice = englishVoice;
+            utterance.lang = 'en-US';
+            utterance.rate = rate; // 專為幼兒調慢的語速
+            utterance.pitch = 1.1; // Slightly higher pitch
+            synth.speak(utterance);
+        }
+
+        // --- GAME LOGIC ---
+
+        function startGame(groupName) {
+            // Unlock audio context on first interaction
+            speak("Let's play!"); 
+
+            currentGroupLetters = groupsDef[groupName];
+            currentLevel = 1;
+            
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('game-screen').classList.add('flex');
+            
+            startLevel();
+        }
+
+        function startLevel() {
+            questionCount = 0;
+            document.getElementById('level-display').innerText = `Level ${currentLevel}`;
+            updateStars();
+            document.getElementById('level-complete-screen').classList.add('hidden');
+            generateQuestion();
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            startLevel();
+        }
+
+        function backToMenu() {
+            if(synth.speaking) synth.cancel();
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('flex');
+            document.getElementById('level-complete-screen').classList.add('hidden');
+            document.getElementById('game-complete-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        }
+
+        function updateStars() {
+            const container = document.getElementById('progress-stars');
+            container.innerHTML = '';
+            for(let i=0; i<maxQuestionsPerLevel; i++) {
+                if(i < questionCount) {
+                    container.innerHTML += '<i class="fas fa-star text-yellow-400 mx-1"></i>';
+                } else {
+                    container.innerHTML += '<i class="far fa-star text-gray-300 mx-1"></i>';
+                }
+            }
+        }
+
+        function generateQuestion() {
+            isProcessing = false;
+            
+            // 1. Pick target letter
+            currentTargetLetter = getRandomItem(currentGroupLetters);
+            
+            // 2. Decide case
+            isUpperCase = Math.random() > 0.5;
+            
+            // 3. Display target letter
+            const displayLetter = isUpperCase ? currentTargetLetter : currentTargetLetter.toLowerCase();
+            document.getElementById('target-letter').innerText = displayLetter;
+            
+            // Optional: Auto speak letter when question shows
+            // setTimeout(() => speak(displayLetter), 500);
+
+            // 4. Generate Options
+            let numOptions = currentLevel === 1 ? 2 : 3;
+            
+            // Correct option
+            let correctWordObj = getRandomItem(dictionary[currentTargetLetter]);
+            correctOption = { ...correctWordObj, letter: currentTargetLetter, isCorrect: true };
+            
+            currentOptions = [correctOption];
+            
+            // Wrong options (ensure they start with different letters)
+            let availableWrongLetters = Object.keys(dictionary).filter(l => l !== currentTargetLetter);
+            
+            while(currentOptions.length < numOptions) {
+                let wrongLetter = getRandomItem(availableWrongLetters);
+                // Remove to prevent duplicate wrong letters in same question
+                availableWrongLetters = availableWrongLetters.filter(l => l !== wrongLetter); 
+                
+                let wrongWordObj = getRandomItem(dictionary[wrongLetter]);
+                currentOptions.push({ ...wrongWordObj, letter: wrongLetter, isCorrect: false });
+            }
+            
+            // Shuffle
+            currentOptions = shuffleArray(currentOptions);
+            
+            renderOptions();
+        }
+
+        function renderOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            currentOptions.forEach((opt, index) => {
+                // Card Container
+                const card = document.createElement('div');
+                card.className = `card bg-white rounded-3xl p-4 shadow-[0_8px_0_#e5e7eb] border-2 border-gray-100 flex flex-col items-center justify-center pop-in relative w-40 md:w-48 lg:w-56`;
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                // Image/Emoji Area (Click to answer)
+                const imgArea = document.createElement('div');
+                imgArea.className = 'w-full flex flex-col items-center justify-center cursor-pointer pb-4';
+                imgArea.onclick = () => checkAnswer(opt.isCorrect, card);
+                
+                const emoji = document.createElement('div');
+                emoji.className = 'text-7xl md:text-8xl mb-2 pointer-events-none';
+                emoji.innerText = opt.e;
+                
+                const wordLabel = document.createElement('div');
+                wordLabel.className = 'text-2xl font-bold text-gray-700 pointer-events-none capitalize';
+                wordLabel.innerText = opt.w;
+
+                imgArea.appendChild(emoji);
+                imgArea.appendChild(wordLabel);
+
+                // Divider
+                const divider = document.createElement('div');
+                divider.className = 'w-full h-[2px] bg-gray-100 mb-3';
+
+                // Listen Button Area
+                const listenBtn = document.createElement('button');
+                listenBtn.className = 'w-full py-3 rounded-xl bg-orange-100 text-orange-500 hover:bg-orange-200 active:bg-orange-300 flex items-center justify-center gap-2 font-bold text-lg transition-colors';
+                listenBtn.innerHTML = '<i class="fas fa-volume-up text-xl"></i> Listen';
+                // Stop propagation so clicking listen doesn't trigger answer
+                listenBtn.onclick = (e) => {
+                    e.stopPropagation(); 
+                    speak(opt.w);
+                    
+                    // Add simple animation to button
+                    listenBtn.classList.add('scale-95');
+                    setTimeout(() => listenBtn.classList.remove('scale-95'), 150);
+                };
+
+                card.appendChild(imgArea);
+                card.appendChild(divider);
+                card.appendChild(listenBtn);
+
+                container.appendChild(card);
+            });
+        }
+
+        function playTargetLetterSound() {
+            const letter = isUpperCase ? currentTargetLetter : currentTargetLetter.toLowerCase();
+            speak(letter);
+            
+            const btn = document.querySelector('#target-letter + button');
+            btn.classList.add('bg-blue-300', 'scale-110');
+            setTimeout(() => btn.classList.remove('bg-blue-300', 'scale-110'), 200);
+        }
+
+        function checkAnswer(isCorrect, cardElement) {
+            if (isProcessing) return;
+            
+            if (isCorrect) {
+                isProcessing = true; // Block further clicks
+                
+                // Correct Feedback
+                const encouragement = getRandomItem(encouragements);
+                speak(encouragement);
+                
+                cardElement.classList.add('bg-green-100', 'border-green-400');
+                cardElement.querySelector('.card > div').classList.add('bounce');
+                
+                // Show visual feedback text
+                const overlay = document.getElementById('feedback-overlay');
+                const fbText = document.getElementById('feedback-text');
+                fbText.innerText = encouragement.toUpperCase();
+                overlay.classList.add('show');
+
+                questionCount++;
+                updateStars();
+
+                setTimeout(() => {
+                    overlay.classList.remove('show');
+                    
+                    if (questionCount >= maxQuestionsPerLevel) {
+                        handleLevelComplete();
+                    } else {
+                        generateQuestion();
+                    }
+                }, 1500); // Wait 1.5s before next question
+
+            } else {
+                // Wrong Feedback
+                cardElement.classList.add('shake', 'bg-red-50', 'border-red-200');
+                
+                // Remove classes after animation to allow repeated shaking
+                setTimeout(() => {
+                    cardElement.classList.remove('shake', 'bg-red-50', 'border-red-200');
+                }, 500);
+            }
+        }
+
+        function handleLevelComplete() {
+            if (currentLevel >= 3) {
+                // Game completely finished
+                speak("You did it! Awesome job!");
+                document.getElementById('game-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('flex');
+                document.getElementById('game-complete-screen').classList.remove('hidden');
+            } else {
+                // Level finished
+                speak(`Level ${currentLevel} cleared!`);
+                document.getElementById('level-complete-screen').classList.remove('hidden');
+            }
+        }
+
+        // Initialize voices on load if possible
+        initVoices();
+
+    </script>
+</body>
+</html>
